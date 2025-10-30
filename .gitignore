@@ -1,0 +1,6 @@
+archive/
+notes/
+__pycache__/
+*.egg-info/
+*.egg
+*.whl
