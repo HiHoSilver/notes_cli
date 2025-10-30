@@ -68,7 +68,7 @@ def view_note() -> None:
     print(content)
     print(f"{"=" * 50}")
 
-def select_note(notes) -> None:
+def select_note(notes) -> str:
     choice: str = input("\nEnter note number to edit: ").strip()
     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
         print("Invalid choice.")
@@ -78,6 +78,16 @@ def select_note(notes) -> None:
     filepath: str = os.path.join(NOTES_DIR, filename)
 
     return filename, filepath
+
+# def select_line(lines) -> str:
+#     choice: str = input("\nEnter line number to edit: ").strip()
+#     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
+#         print("Invalid choice.")
+#         return
+    
+#     line: str = lines[choice - 1]
+
+#     return line
 
 def search_notes() -> None:
     keyword = input("Enter keyword to search: ").strip().lower()
@@ -101,7 +111,7 @@ def edit_note() -> None:
     if not notes:
         return
 
-    choice: str = input("\nEnter additional lines (1) or open in editor (2)?: ").strip()
+    choice: str = input("\nEnter additional lines (1), edit specific lines (2), or open in editor (3)?: ").strip()
     if not choice.isdigit or int(choice) < 1:
         print("Invalid choice.")
 
@@ -111,7 +121,7 @@ def edit_note() -> None:
             print("\nEnter lines to append (type 'END' on a new line to finish):")
             lines: list[str] = []
             while True:
-                line = input()
+                line: str = input()
                 if line.strip().upper() == "END":
                     break
                 
@@ -125,6 +135,37 @@ def edit_note() -> None:
                 print("No lines were added.")
         
         case "2":
+            filename, filepath = select_note(notes)
+            with open(filepath, "r", encoding="utf-8") as f:
+                lines: list[str]= f.read().splitlines()
+
+            for i, line in enumerate(lines, start=1):
+                print(f"{i}. {line}")
+
+            while True:
+                choice: str = input("\nEnter line number to edit: ").strip()
+                if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
+                    print("Invalid choice.")
+                    continue
+    
+                line_selection: int = int(choice) - 1
+                print("\nEnter updated line:")
+                update: str = input()
+                lines[line_selection] = update
+                choice2: str = input("\nDo you want to edit any more lines (y/n)?").strip().lower()
+                
+                if choice2 == "n":
+                    break
+                elif choice2 != "y":
+                    print("Invalid Choice. Please enter 'y' or 'n'.")
+                    continue
+
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+
+            print(f"Note '{filename}' updated successfully.")
+
+        case "3":
             filename, filepath = select_note(notes)
             print(f"Opening '{filename}' in Notepad...")
             subprocess.run(["notepad.exe", filepath])
