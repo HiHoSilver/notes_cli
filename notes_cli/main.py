@@ -33,7 +33,7 @@ def create_note() -> None:
     
     content = "\n".join(lines)
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write(f"# {title}\n\n{content}\n\n---\n*Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+        f.write(f"# {title}\n\n*Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n---\n\n{content}")
     
     print(f"Note '{title}' saved successfully.")
 
@@ -68,6 +68,17 @@ def view_note() -> None:
     print(content)
     print(f"{"=" * 50}")
 
+def select_note(notes) -> None:
+    choice: str = input("\nEnter note number to edit: ").strip()
+    if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
+        print("Invalid choice.")
+        return
+
+    filename: str = notes[int(choice) - 1]
+    filepath: str = os.path.join(NOTES_DIR, filename)
+
+    return filename, filepath
+
 def search_notes() -> None:
     keyword = input("Enter keyword to search: ").strip().lower()
     if not keyword:
@@ -85,25 +96,45 @@ def search_notes() -> None:
     if not found:
         print("No matches found.")
 
-import subprocess
-import os
-
 def edit_note() -> None:
     notes = list_notes()
     if not notes:
         return
 
-    choice: str = input("\nEnter note number to edit: ").strip()
-    if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
+    # choice: str = input("\nEnter note number to edit: ").strip()
+    # if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
+    #     print("Invalid choice.")
+    #     return
+
+    # filename: str = notes[int(choice) - 1]
+    # filepath: str = os.path.join(NOTES_DIR, filename)
+
+    choice: str = input("\nEnter additional lines (1) or open in editor (2)?: ").strip()
+    if not choice.isdigit or int(choice) < 1:
         print("Invalid choice.")
-        return
 
-    filename: str = notes[int(choice) - 1]
-    filepath: str = os.path.join(NOTES_DIR, filename)
+    match choice:
+        case "1":
+            filename, filepath = select_note(notes)
+            print("\nEnter lines to append (type 'END' on a new line to finish):")
+            lines: list[str] = []
+            while True:
+                line = input()
+                if line.strip().upper() == "END":
+                    break
+                lines.append(line)
 
-    print(f"Opening '{filename}' in Notepad...")
-    subprocess.run(["notepad.exe", filepath])
-    print(f"Finished editing '{filename}'.")
+            if lines:
+                with open(filepath, "a", encoding="utf-8") as f:
+                    f.write("\n" + "\n".join(lines) + "\n")
+                print(f"New lines appended to '{filename}'.")
+            else:
+                print("No lines were added.")
+        case "2":
+            filename, filepath = select_note(notes)
+            print(f"Opening '{filename}' in Notepad...")
+            subprocess.run(["notepad.exe", filepath])
+            print(f"Finished editing '{filename}'.")
 
 def delete_note() -> None:
     notes = list_notes()
