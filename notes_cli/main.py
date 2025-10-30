@@ -101,14 +101,6 @@ def edit_note() -> None:
     if not notes:
         return
 
-    # choice: str = input("\nEnter note number to edit: ").strip()
-    # if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
-    #     print("Invalid choice.")
-    #     return
-
-    # filename: str = notes[int(choice) - 1]
-    # filepath: str = os.path.join(NOTES_DIR, filename)
-
     choice: str = input("\nEnter additional lines (1) or open in editor (2)?: ").strip()
     if not choice.isdigit or int(choice) < 1:
         print("Invalid choice.")
@@ -122,6 +114,7 @@ def edit_note() -> None:
                 line = input()
                 if line.strip().upper() == "END":
                     break
+                
                 lines.append(line)
 
             if lines:
@@ -140,7 +133,9 @@ def delete_note() -> None:
     notes = list_notes()
     if not notes:
         return
+    
     choice: str = input("\nEnter note number to delete: ").strip()
+    
     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
         print("Invalid choice.")
         return
