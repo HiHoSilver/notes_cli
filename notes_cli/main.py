@@ -123,6 +123,7 @@ def edit_note() -> None:
                 print(f"New lines appended to '{filename}'.")
             else:
                 print("No lines were added.")
+        
         case "2":
             filename, filepath = select_note(notes)
             print(f"Opening '{filename}' in Notepad...")
