@@ -2,8 +2,9 @@ import os
 from datetime import datetime
 import argparse
 import subprocess
+from .file_path import notes_dir
 
-NOTES_DIR: str = "notes"
+NOTES_DIR: str = notes_dir.NOTES_DIR
 
 def create_dir() -> None:
     if not os.path.exists(NOTES_DIR):
@@ -68,7 +69,7 @@ def view_note() -> None:
     print(content)
     print(f"{"=" * 50}")
 
-def select_note(notes) -> str:
+def select_note(notes) -> str | None:
     choice: str = input("\nEnter note number to edit: ").strip()
     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
         print("Invalid choice.")
@@ -78,16 +79,6 @@ def select_note(notes) -> str:
     filepath: str = os.path.join(NOTES_DIR, filename)
 
     return filename, filepath
-
-# def select_line(lines) -> str:
-#     choice: str = input("\nEnter line number to edit: ").strip()
-#     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
-#         print("Invalid choice.")
-#         return
-    
-#     line: str = lines[choice - 1]
-
-#     return line
 
 def search_notes() -> None:
     keyword = input("Enter keyword to search: ").strip().lower()
@@ -187,6 +178,7 @@ def delete_note() -> None:
     os.remove(filepath)
     print(f"Deleted note '{filename}'.")
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Select mode")
     group = parser.add_mutually_exclusive_group()
@@ -195,6 +187,7 @@ def main() -> None:
     group.add_argument("-s", "--search", action="store_true", help="Search notes")
     group.add_argument("-e", "--edit", action="store_true", help="Edit note")
     group.add_argument("-d", "--delete", action="store_true", help="Delete note")
+    group.add_argument("-l", "--list", action="store_true", help="List notes")
     args = parser.parse_args()
     
     create_dir()
@@ -209,6 +202,8 @@ def main() -> None:
         edit_note()
     elif args.delete:
         delete_note()
+    elif args.list:
+        list_notes()
     else:
         print("Invalid choice")
 
