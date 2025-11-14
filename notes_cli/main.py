@@ -102,13 +102,15 @@ def edit_note() -> None:
     if not notes:
         return
 
+    filename, filepath = select_note(notes)
+
     choice: str = input("\nEnter additional lines (1), edit specific lines (2), or open in editor (3)?: ").strip()
     if not choice.isdigit or int(choice) < 1:
         print("Invalid choice.")
+        return
 
-    match choice:
+    match choice:           # TODO: Add undo to this
         case "1":
-            filename, filepath = select_note(notes)
             print("\nEnter lines to append (type 'END' on a new line to finish):")
             lines: list[str] = []
             while True:
@@ -126,29 +128,51 @@ def edit_note() -> None:
                 print("No lines were added.")
         
         case "2":
-            filename, filepath = select_note(notes)
             with open(filepath, "r", encoding="utf-8") as f:
                 lines: list[str]= f.read().splitlines()
 
             for i, line in enumerate(lines, start=1):
                 print(f"{i}. {line}")
 
+            history_stack: list[str] = []
             while True:
-                choice: str = input("\nEnter line number to edit: ").strip()
+                choice: str = input("\nEnter line number to edit (or type 'undo'): ").strip()
+                if choice == "undo":
+                    if history_stack:
+                        lines = history_stack.pop()
+                        print("\nUndo successful. Current lines:")
+                        for i, line in enumerate(lines, start=1):
+                            print(f"{i}. {line}")
+                    else:
+                        print("Nothing to undo.")
+                    continue
+
                 if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
                     print("Invalid choice.")
                     continue
     
                 line_selection: int = int(choice) - 1
-                print("\nEnter updated line:")
+                print("\nEnter updated line, or type 'DEL' to delete:")
                 update: str = input()
-                lines[line_selection] = update
+                history_stack.append(lines.copy())
+                if update.strip().upper() == "DEL":
+                    del lines[line_selection]
+                else:
+                    lines[line_selection] = update
                 choice2: str = input("\nDo you want to edit any more lines (y/n)?").strip().lower()
                 
                 if choice2 == "n":
                     break
+                elif choice2 == "undo":
+                    if history_stack:
+                        lines = history_stack.pop()
+                        print("\nUndo successful. Current lines:")
+                        for i, line in enumerate(lines, start=1):
+                            print(f"{i}. {line}")
+                    else:
+                        print("Nothing to undo.")
                 elif choice2 != "y":
-                    print("Invalid Choice. Please enter 'y' or 'n'.")
+                    print("Invalid Choice. Please enter 'y', 'n', or 'undo'.")
                     continue
 
             with open(filepath, "w", encoding="utf-8") as f:
@@ -157,12 +181,11 @@ def edit_note() -> None:
             print(f"Note '{filename}' updated successfully.")
 
         case "3":
-            filename, filepath = select_note(notes)
             print(f"Opening '{filename}' in Notepad...")
             subprocess.run(["notepad.exe", filepath])
             print(f"Finished editing '{filename}'.")
 
-def delete_note() -> None:
+def delete_note() -> None:          # TODO: Add undo to this
     notes = list_notes()
     if not notes:
         return
