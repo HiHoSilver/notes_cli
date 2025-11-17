@@ -2,9 +2,31 @@ import os
 from datetime import datetime
 import argparse
 import subprocess
+from typing import Any
 from .file_path import notes_dir
 
 NOTES_DIR: str = notes_dir.NOTES_DIR
+
+class UndoManager:
+    def __init__(self):
+        self.history: list[tuple[str, str]] = []
+
+    def snapshot_file(self, filepath: str) -> None:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as file:
+                content = file.read()
+            self.history.append((filepath, content))
+
+    def undo(self) -> bool:
+        if not self.history:
+            print("Nothing to undo.")
+            return False
+        
+        filepath, content = self.history.pop()
+        with open(filepath, 'w', encoding='utf-8') as file:
+            file.write(content)
+        print(f"Undo successful. Restored '{os.path.basename(filepath)}'.")
+        return True
 
 def create_dir() -> None:
     if not os.path.exists(NOTES_DIR):
@@ -109,7 +131,7 @@ def edit_note() -> None:
         print("Invalid choice.")
         return
 
-    match choice:           # TODO: Add undo to this
+    match choice:
         case "1":
             print("\nEnter lines to append (type 'END' on a new line to finish):")
             lines: list[str] = []
@@ -117,63 +139,78 @@ def edit_note() -> None:
                 line: str = input()
                 if line.strip().upper() == "END":
                     break
-                
                 lines.append(line)
 
             if lines:
+                undo_manager = UndoManager()
+                undo_manager.snapshot_file(filepath)
+
                 with open(filepath, "a", encoding="utf-8") as f:
                     f.write("\n" + "\n".join(lines) + "\n")
                 print(f"New lines appended to '{filename}'.")
+
+                choice2 = input("Undo append (y/n)? ").strip().lower()
+                if choice2 == "y":
+                    undo_manager.undo()
             else:
                 print("No lines were added.")
         
         case "2":
             with open(filepath, "r", encoding="utf-8") as f:
-                lines: list[str]= f.read().splitlines()
+                lines: list[str] = f.read().splitlines()
 
             for i, line in enumerate(lines, start=1):
                 print(f"{i}. {line}")
 
-            history_stack: list[str] = []
+            undo_manager = UndoManager()
+
             while True:
-                choice: str = input("\nEnter line number to edit (or type 'undo'): ").strip()
+                choice: str = input("\nEnter line number to edit (or type 'undo'): ").strip().lower()
+
                 if choice == "undo":
-                    if history_stack:
-                        lines = history_stack.pop()
+                    if undo_manager.undo():
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            lines = f.read().splitlines()
                         print("\nUndo successful. Current lines:")
                         for i, line in enumerate(lines, start=1):
                             print(f"{i}. {line}")
-                    else:
-                        print("Nothing to undo.")
                     continue
 
                 if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
                     print("Invalid choice.")
                     continue
-    
+
                 line_selection: int = int(choice) - 1
                 print("\nEnter updated line, or type 'DEL' to delete:")
                 update: str = input()
-                history_stack.append(lines.copy())
+
+                undo_manager.snapshot_file(filepath)
+
                 if update.strip().upper() == "DEL":
                     del lines[line_selection]
                 else:
                     lines[line_selection] = update
-                choice2: str = input("\nDo you want to edit any more lines (y/n)?").strip().lower()
-                
+
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write("\n".join(lines) + "\n")
+
+                choice2: str = input("\nDo you want to edit any more lines (y/n/undo)? ").strip().lower()
+
                 if choice2 == "n":
                     break
                 elif choice2 == "undo":
-                    if history_stack:
-                        lines = history_stack.pop()
+                    if undo_manager.undo():
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            lines = f.read().splitlines()
                         print("\nUndo successful. Current lines:")
                         for i, line in enumerate(lines, start=1):
                             print(f"{i}. {line}")
-                    else:
-                        print("Nothing to undo.")
                 elif choice2 != "y":
                     print("Invalid Choice. Please enter 'y', 'n', or 'undo'.")
                     continue
+
+            print(f"Note '{filename}' updated successfully.")
+
 
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
@@ -181,9 +218,19 @@ def edit_note() -> None:
             print(f"Note '{filename}' updated successfully.")
 
         case "3":
+            undo_manager = UndoManager()
+            undo_manager.snapshot_file(filepath)
+
             print(f"Opening '{filename}' in Notepad...")
             subprocess.run(["notepad.exe", filepath])
             print(f"Finished editing '{filename}'.")
+
+            choice2 = input("Undo changes made in Notepad (y/n)? ").strip().lower()
+            if choice2 == "y":
+                undo_manager.undo()
+            else:
+                print(f"Changes to '{filename}' kept.")
+
 
 def delete_note() -> None:
     notes = list_notes()
