@@ -185,7 +185,7 @@ def edit_note() -> None:
             subprocess.run(["notepad.exe", filepath])
             print(f"Finished editing '{filename}'.")
 
-def delete_note() -> None:          # TODO: Add undo to this
+def delete_note() -> None:
     notes = list_notes()
     if not notes:
         return
@@ -198,8 +198,22 @@ def delete_note() -> None:          # TODO: Add undo to this
     
     filename: str = notes[int(choice) - 1]
     filepath: str = os.path.join(NOTES_DIR, filename)
+
+    with open(filepath, "r", encoding="utf-8") as file:
+        backup_content: str = file.read()
+
     os.remove(filepath)
     print(f"Deleted note '{filename}'.")
+
+    choice2: str = input("Would you like to undo (y/n)? ").strip().lower()
+    if choice2 == "y":
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(backup_content)
+        print(f"Undo successful. Note '{filename}' restored.")
+    elif choice2 == "n":
+        print(f"Note '{filename}' permanently deleted.")
+    else:
+        print("Invalid choice. Please enter 'y' or 'n'.")
 
 
 def main() -> None:
