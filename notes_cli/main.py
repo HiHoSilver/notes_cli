@@ -45,11 +45,11 @@ def create_note() -> None:
         print("A note with this title already exists.")
         return
     
-    print("Enter your note content (type 'END' on a new line to save):")
+    print("Enter your note content (type 'end' on a new line to save):")
     lines = []
     while True:
         line = input()
-        if line.strip().upper() == "END":
+        if line.strip().lower() == "end":
             break
         
         lines.append(line)
@@ -119,7 +119,7 @@ def search_notes() -> None:
     if not found:
         print("No matches found.")
 
-def edit_note() -> None:
+def edit_note(undo_manager: UndoManager) -> None:
     notes = list_notes()
     if not notes:
         return
@@ -133,16 +133,15 @@ def edit_note() -> None:
 
     match choice:
         case "1":
-            print("\nEnter lines to append (type 'END' on a new line to finish):")
+            print("\nEnter lines to append (type 'end' on a new line to finish):")
             lines: list[str] = []
             while True:
                 line: str = input()
-                if line.strip().upper() == "END":
+                if line.strip().lower() == "end":
                     break
                 lines.append(line)
 
             if lines:
-                undo_manager = UndoManager()
                 undo_manager.snapshot_file(filepath)
 
                 with open(filepath, "a", encoding="utf-8") as f:
@@ -162,10 +161,8 @@ def edit_note() -> None:
             for i, line in enumerate(lines, start=1):
                 print(f"{i}. {line}")
 
-            undo_manager = UndoManager()
-
             while True:
-                choice: str = input("\nEnter line number to edit (or type 'undo'): ").strip().lower()
+                choice: str = input("\nEnter line number to edit (or type 'undo' or 'end): ").strip().lower()
 
                 if choice == "undo":
                     if undo_manager.undo():
@@ -175,18 +172,20 @@ def edit_note() -> None:
                         for i, line in enumerate(lines, start=1):
                             print(f"{i}. {line}")
                     continue
+                if choice == "end":
+                    break
 
                 if not choice.isdigit() or int(choice) < 1 or int(choice) > len(lines):
                     print("Invalid choice.")
                     continue
 
                 line_selection: int = int(choice) - 1
-                print("\nEnter updated line, or type 'DEL' to delete:")
+                print("\nEnter updated line, or type 'del' to delete:")
                 update: str = input()
 
                 undo_manager.snapshot_file(filepath)
 
-                if update.strip().upper() == "DEL":
+                if update.strip().lower() == "del":
                     del lines[line_selection]
                 else:
                     lines[line_selection] = update
@@ -211,14 +210,7 @@ def edit_note() -> None:
 
             print(f"Note '{filename}' updated successfully.")
 
-
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write("\n".join(lines) + "\n")
-
-            print(f"Note '{filename}' updated successfully.")
-
         case "3":
-            undo_manager = UndoManager()
             undo_manager.snapshot_file(filepath)
 
             print(f"Opening '{filename}' in Notepad...")
@@ -232,13 +224,12 @@ def edit_note() -> None:
                 print(f"Changes to '{filename}' kept.")
 
 
-def delete_note() -> None:
+def delete_note(undo_manager: UndoManager) -> None:
     notes = list_notes()
     if not notes:
         return
     
     choice: str = input("\nEnter note number to delete: ").strip()
-    
     if not choice.isdigit() or int(choice) < 1 or int(choice) > len(notes):
         print("Invalid choice.")
         return
@@ -246,22 +237,17 @@ def delete_note() -> None:
     filename: str = notes[int(choice) - 1]
     filepath: str = os.path.join(NOTES_DIR, filename)
 
-    with open(filepath, "r", encoding="utf-8") as file:
-        backup_content: str = file.read()
+    # Snapshot before deletion
+    undo_manager.snapshot_file(filepath)
 
     os.remove(filepath)
     print(f"Deleted note '{filename}'.")
 
-    choice2: str = input("Would you like to undo (y/n)? ").strip().lower()
+    choice2: str = input("Undo deletion (y/n)? ").strip().lower()
     if choice2 == "y":
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(backup_content)
-        print(f"Undo successful. Note '{filename}' restored.")
-    elif choice2 == "n":
-        print(f"Note '{filename}' permanently deleted.")
+        undo_manager.undo()
     else:
-        print("Invalid choice. Please enter 'y' or 'n'.")
-
+        print(f"Note '{filename}' permanently deleted.")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Select mode")
@@ -275,6 +261,7 @@ def main() -> None:
     args = parser.parse_args()
     
     create_dir()
+    undo_manager = UndoManager()
 
     if args.create:
         create_note()
@@ -283,9 +270,9 @@ def main() -> None:
     elif args.search:
         search_notes()
     elif args.edit:
-        edit_note()
+        edit_note(undo_manager)
     elif args.delete:
-        delete_note()
+        delete_note(undo_manager)
     elif args.list:
         list_notes()
     else:
